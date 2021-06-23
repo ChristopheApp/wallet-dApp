@@ -128,7 +128,7 @@ export default function Home() {
         <div className={styles.top}>
           <h1>Wallet dApp</h1>
           <div>
-            { <a href={`https://${network.network}.etherscan.io/address/${accounts[0]}`} target="_blank" className={styles.network} >
+            { <a href={`https://${network.network}.etherscan.io/address/${accounts[0]}`} target="_blank" rel="noreferrer" className={styles.network} >
                 {network.name} ↗️
               </a> }
             <button onClick={connectToWeb3} className={styles.button}>Connect web3</button>
