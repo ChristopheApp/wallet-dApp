@@ -28,7 +28,6 @@ export default function Home() {
     if(window.ethereum) {
       let myAccounts =0; let myId=0;
       let myNetwork = {};
-      console.log(window.ethereum)
       try {
         myAccounts = await window.ethereum.request({method: 'eth_requestAccounts'})
 
@@ -48,10 +47,6 @@ export default function Home() {
           setNetwork(network);
           myNetwork = network;}
       })
-      console.log(myAccounts)
-      console.log(myId)
-      console.log(myNetwork)
-      //displaynetwork()
     } 
   }, [])
 
@@ -80,7 +75,6 @@ export default function Home() {
     const getAccounts = async () => setAccounts(await web3.eth.getAccounts());
     const getBalance = async () => setBalance(await web3.eth.getBalance(accounts[0]));
 
-    //console.log(networkId)
     if (accounts.length == 0) getAccounts();
     if (accounts.length > 0) getBalance();
 
@@ -88,27 +82,9 @@ export default function Home() {
       if(networkId == network.chainId) 
         setNetwork(network);
       })
-    //console.log(networkId)
 
     
   }, [isConnectedWeb3, accounts, networkId])
-
-  //Actualiser réseau
-  // useEffect(() => {
-
-  //   chainsId.forEach(network => {
-  //     if(networkId == network.chainId) 
-  //       setNetwork(network);
-  //   })
-  // },[networkId])
-
-  // useEffect(() => {
-  //   if(network)
-  //     displaynetwork()
-    
-  // },[network, networkId])
-
-
 
   function weiToEth(wei) {
     if(network.nativeCurrency)
@@ -140,11 +116,6 @@ export default function Home() {
     }, [accounts, addressToSend, ethToSend]
   );
 
-  // const displaynetwork = () => {
-  //   if(isConnectedWeb3){
-  //     return (<a className={styles.network} >{network.name}</a>)
-  //   }
-  // }
   return (
     <div className={styles.container}>
       <Head>
@@ -162,11 +133,6 @@ export default function Home() {
               </a> }
             <button onClick={connectToWeb3} className={styles.button}>Connect web3</button>
           </div>
-            {
-              // isConnectedWeb3
-              // ? <p>Connected</p>
-              // : <button onClick={connectToWeb3} className={styles.button}>Connect web3</button>
-            } 
          </div>        
 
           <div className={styles.card}>
