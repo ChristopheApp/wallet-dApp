@@ -6,6 +6,7 @@ import chainsId from '../public/chains.json'
 
 import { useState, useCallback, useEffect } from 'react'
 
+import Erc20Abi from "../contracts/wcs-contract.json"
 
 import Web3 from 'web3';
 
@@ -23,33 +24,16 @@ export default function Home() {
   const [ethToSend, setEthToSend] = useState(0)
   const [addressToSend, setAddressToSend] = useState("")
 
-  useEffect( async () => {
+  const [amount2, setAmount2] = useState(0)
+  const [address2, setAddress2] = useState("")
 
-    if(window.ethereum) {
-      let myAccounts =0; let myId=0;
-      let myNetwork = {};
-      try {
-        myAccounts = await window.ethereum.request({method: 'eth_requestAccounts'})
+  const [contracts, setContracts] = useState({})
 
-        setIsConnectedWeb3(true)
+  const [tokenAddress, setTokenAddress] = useState("")
+  const [token, setToken] = useState({})
 
-        myId = await web3.eth.net.getId()
-        
-      } catch (err) {
-        console.error(err)
-      }
-
-      setAccounts(myAccounts);
-      setNetworkId(myId)
-
-      chainsId.forEach(network => {
-        if(myId == network.chainId){ 
-          setNetwork(network);
-          myNetwork = network;}
-      })
-    } 
-  }, [])
-
+  // const [addressContract, setAddressContract] = useState("")
+  // const [tokens, setTokens] = useState([]);
 
   const connectToWeb3 = useCallback(
     async () => {
@@ -70,21 +54,153 @@ export default function Home() {
     }
   )
 
-  // Connecter un compte
-  useEffect(() => {
-    const getAccounts = async () => setAccounts(await web3.eth.getAccounts());
-    const getBalance = async () => setBalance(await web3.eth.getBalance(accounts[0]));
+  useEffect( async () => {
 
-    if (accounts.length == 0) getAccounts();
-    if (accounts.length > 0) getBalance();
+    if(window.ethereum) {
+      console.log(window.ethereum)
 
-    chainsId.forEach(network => {
-      if(networkId == network.chainId) 
-        setNetwork(network);
+      let myAccounts =0; let myId=0;
+      let myNetwork = {}; let myBalance=0;
+      try {
+        setIsConnectedWeb3(true)
+
+        myAccounts = await window.ethereum.request({method: 'eth_requestAccounts'})
+        myBalance = await web3.eth.getBalance(myAccounts[0])
+        myId = await web3.eth.net.getId()
+
+      } catch (err) {
+        console.error(err)
+      }
+
+      setAccounts(myAccounts);
+      setNetworkId(myId)
+      setBalance(myBalance)
+
+
+      chainsId.forEach(network => {
+        if(myId == network.chainId){ 
+          setNetwork(network);
+          myNetwork = network;
+          }          
       })
 
+      console.log(myNetwork)
+      console.log(accounts)
+        //setUptoken(myAccounts[0]);
+      
+    } 
+  }, [])
+
+  useEffect(() => {
+    if(tokenAddress !== "") {
+      const erc20Contract = new web3.eth.Contract(
+        Erc20Abi,
+        tokenAddress
+      )
+
+      const getErc20Info = async () => {
+        try {
+
+          const name = await erc20Contract.methods.name().call()
+          const balance = await erc20Contract.methods.balanceOf(accounts[0]).call()
+          const symbol = await erc20Contract.methods.symbol().call()
+
+          setToken({
+            name: name,
+            balance: balance,
+            symbol: symbol
+          })
+          
+        } catch(err) {
+          alert("The contract address is not valid.")
+        }
+      }
+      getErc20Info();
+    }
+  }, [tokenAddress, accounts])
+
+  // Get balance du new contract
+  // useEffect(async () => {
+  //   if(contracts) {
+
+  //     console.log(contracts)
+  //     let balance = await contracts.contract.methods.balanceOf(accounts[0]).call();
+  //     console.log(balance)
+  //     let myContract = contracts
+  //     myContract.token.balance = balance
+  //     setContracts(myContract)
+  //   }
+  // },[contracts] )
+
+  // const setUptoken = async(address) => {
+  //   const myContract = new web3.eth.Contract(Erc20Abi, "0x67BeF77Fef6D7bbF0fE14723E017c2fda1634Ef8")
+  //   console.log(myContract)
     
-  }, [isConnectedWeb3, accounts, networkId])
+  //   let myToken = {};
+  //   myToken.name = await myContract.methods.name().call();
+  //   myToken.symbol = await myContract.methods.symbol().call();
+  //   myToken.balance = await myContract.methods.balanceOf(address).call();
+  //   console.log(myToken)
+
+  //   setContracts({
+  //     contract: myContract,
+  //     token: myToken
+  //   })
+
+  // }
+
+
+
+  // Changement de compte - reseau
+  useEffect(async () => {
+    const getAccounts = async () => setAccounts(await web3.eth.getAccounts());
+    const getBalance = async () => setBalance(await web3.eth.getBalance(web3.eth.defaultAccount));
+
+    const getNetwork= async () => {
+
+      let myId = await web3.eth.net.getId();
+      
+      chainsId.forEach(network => {
+        if(myId == network.chainId){ 
+          setNetwork(network);
+          }          
+      })
+    }
+    /**
+     * @description Detect if account changed on Metamask, and the data (network accounts and balance)
+    */
+  window.ethereum.on('accountsChanged', (accounts) => {
+    // Handle the new accounts, or lack thereof.
+    // "accounts" will always be an array, but it can be empty.
+    if (web3.eth.defaultAccount !== accounts[0]) {
+      web3.eth.defaultAccount = accounts[0];
+      getAccounts()
+      getNetwork()
+      // too many repeat
+      if(web3.eth.defaultAccount)
+        getBalance();
+    }
+    console.log("You have changed your account !",  accounts[0])
+  })
+
+  /**
+     * @description Detect if network change and update the data
+     */
+   window.ethereum.on('chainChanged', (chainId) => {
+    getNetwork()
+    // to many repeat
+
+    if(web3.eth.defaultAccount)
+      getBalance();
+
+    console.log("You have changed network", chainId, accounts[0])
+  })
+
+  }, [web3, accounts, network])
+ 
+
+
+
 
   function weiToEth(wei) {
     if(network.nativeCurrency)
@@ -116,6 +232,31 @@ export default function Home() {
     }, [accounts, addressToSend, ethToSend]
   );
 
+  const transferToken = () => {
+    const erc20Contract = new web3.eth.Contract(
+      Erc20Abi,
+      tokenAddress
+    )
+
+    const sendErc20 = async () => {
+      try {
+        
+        // METHODE TRANSFER
+        const receipt = await erc20Contract.methods.transfer(address2, web3.utils.toWei(amount2)).send({from: accounts[0]});
+      } catch (error) {
+        alert("error send.")
+      }
+    }
+
+    sendErc20()
+    
+  }
+
+  const addToken = () => {
+    console.log("addToken")
+    //setTokens([...tokens, 1])
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -137,7 +278,7 @@ export default function Home() {
 
           <div className={styles.card}>
             <div className={styles.subCard}>
-              <p>Amount {network.chain}: {weiToEth(balance)} {network.shortName}</p>
+              <p>Amount {network.shortName}: {weiToEth(balance)} {network.nativeCurrency ? network.nativeCurrency.symbol : network.shortName}</p>
               <p></p>
             </div>
             
@@ -153,6 +294,44 @@ export default function Home() {
             
             <button onClick={sendToken} className={styles.cardButton}>Envoyer</button>
           </div>
+
+          {/* Nouveau token  */}
+          
+          <div className={styles.card}>
+            <div className={styles.subCard}>
+              <p>Amount {token.name}: {weiToEth(token.balance)} {token.symbol}</p>
+            </div>
+
+            <div className={styles.subCard}>
+              <label>Address ERC20:</label>
+              <input type="text" onChange={e => setTokenAddress(e.target.value)} />
+            </div>
+            
+            <div className={styles.subCard}>
+              <p>Address :</p>
+              <input type="text" onChange={e => setAddress2(e.target.value)} />
+            </div>
+            
+            <div className={styles.subCard}>
+              <p>Amount :</p>
+              <input type="number" onChange={e => setAmount2(e.target.value)} />
+            </div>
+            
+            <button onClick={transferToken} className={styles.cardButton}>Envoyer {token.symbol} </button>
+          </div>
+          
+          
+
+          {/* {
+            tokens.length > 0 &&
+            <div>
+              hello
+            </div>
+            
+          }
+          <input type="text" onChange={e => setAddressContract(e.target.value)} placeholder="Adresse du token" ></input>
+          <button onClick={addToken} className={styles.cardButton}>Ajouter un jeton</button> */}
+
 
 
       </main>
